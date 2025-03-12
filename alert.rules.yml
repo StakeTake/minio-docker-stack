@@ -1,0 +1,72 @@
+groups:
+- name: minio-alerts
+  rules:
+  # Критический алерт: кластер недоступен
+  - alert: MinIOClusterDown
+    expr: minio_cluster_health_status == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "MinIO cluster is DOWN"
+      description: "MinIO cluster health status is 0 for more than 1 minute."
+
+  # Критический алерт: диск почти заполнен
+  - alert: MinIODiskAlmostFull
+    expr: (minio_cluster_capacity_usable_free_bytes / minio_cluster_capacity_usable_total_bytes) < 0.2
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "MinIO Disk Almost Full"
+      description: "MinIO cluster free capacity is less than 20% for more than 5 minutes."
+
+  # Предупреждение: высокий уровень горутин (может указывать на проблемы с производительностью)
+  - alert: MinIOHighGoroutines
+    expr: minio_node_go_routine_total > 600
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High Number of Goroutines in MinIO"
+      description: "MinIO is running more than 600 goroutines for over 5 minutes."
+
+  # Информационный алерт: отсутствие входящих запросов (может быть полезно для тестирования)
+  - alert: MinIONoIncomingRequests
+    expr: minio_s3_requests_incoming_total == 0
+    for: 10m
+    labels:
+      severity: info
+    annotations:
+      summary: "No Incoming S3 Requests"
+      description: "No S3 requests have been received by MinIO in the last 10 minutes."
+
+  # Предупреждение: высокий уровень отказов при аутентификации
+  - alert: MinIOHighAuthRejections
+    expr: sum(rate(minio_s3_requests_rejected_auth_total[5m])) > 0
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High Authentication Rejections in MinIO"
+      description: "There is a non-zero rate of authentication rejections for S3 requests over the last 5 minutes."
+
+  # Предупреждение: большое количество запросов в очереди
+  - alert: MinIOHighRequestQueue
+    expr: minio_s3_requests_waiting_total > 50
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High S3 Request Queue"
+      description: "There are more than 50 S3 requests waiting in the queue for over 5 minutes."
+
+  # Предупреждение: низкая производительность дисковой системы
+  - alert: MinIOSlowDiskIO
+    expr: rate(minio_node_io_read_bytes[5m]) < 1000 or rate(minio_node_io_wchar_bytes[5m]) < 1000
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Low Disk I/O Throughput on MinIO"
+      description: "MinIO disk I/O throughput is below 1000 bytes/sec over the last 5 minutes."
